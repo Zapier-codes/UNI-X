@@ -1,12 +1,12 @@
 # LOCAL DEVELOPMENT ONLY. Copy to local.properties (gitignored, never used
-# in CI). In GitHub Actions, the same keys come from repo Secrets instead
-# (see README.md -> "GitHub Secrets"). Environment variables always take
+# in CI). In GitHub Actions, secrets come from repo Secrets instead (see
+# README.md -> "GitHub Secrets"). Environment variables always take
 # priority over this file when both are present.
 
 sdk.dir=/path/to/your/Android/sdk
 
-# Free key from https://ipgeolocation.io (1,000 lookups/day, no card needed)
-IPGEOLOCATION_API_KEY=your_key_here
+# Currency/geo lookup uses ipapi.co, which needs no API key — nothing to
+# set here for that.
 
 # Optional: only needed to test SIGNED release builds locally.
 # KEYSTORE_PASSWORD=

@@ -1,6 +1,6 @@
 package com.unix.app.data.payments
 
-import com.unix.app.data.geo.IpGeoResponse
+import com.unix.app.data.geo.IpApiCoResponse
 import java.util.Locale
 
 /**
@@ -37,14 +37,15 @@ object CurrencyLocator {
         return countryToCurrency[locale.country.uppercase()] ?: SupportedCurrency.USD
     }
 
-    /** Refines the guess using ipgeolocation.io, which sees the device's
-     *  real public IP rather than a possibly-stale locale setting (e.g. a
-     *  phone set to en-US locale but physically in Lagos on wifi). */
-    fun fromGeoLookup(response: IpGeoResponse): SupportedCurrency {
-        response.currency?.code?.uppercase()?.let { code ->
+    /** Refines the guess using ipapi.co, which sees the device's real
+     *  public IP rather than a possibly-stale locale setting (e.g. a phone
+     *  set to en-US locale but physically in Lagos on wifi). */
+    fun fromGeoLookup(response: IpApiCoResponse): SupportedCurrency {
+        if (response.error == true) return SupportedCurrency.USD
+        response.currency?.uppercase()?.let { code ->
             SupportedCurrency.entries.find { it.code == code }?.let { return it }
         }
-        response.location?.countryCode2?.uppercase()?.let { cc ->
+        response.countryCode?.uppercase()?.let { cc ->
             countryToCurrency[cc]?.let { return it }
         }
         return SupportedCurrency.USD

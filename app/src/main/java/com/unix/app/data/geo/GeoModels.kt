@@ -2,20 +2,17 @@ package com.unix.app.data.geo
 
 import com.google.gson.annotations.SerializedName
 
-data class IpGeoResponse(
+/** Matches ipapi.co's /json/ response shape (only the fields UNI X uses;
+ *  the real response includes more — city, timezone, org, etc.). */
+data class IpApiCoResponse(
     val ip: String? = null,
-    val location: IpGeoLocation? = null,
-    val currency: IpGeoCurrency? = null,
-)
-
-data class IpGeoLocation(
-    @SerializedName("country_code2") val countryCode2: String? = null,
+    @SerializedName("country_code") val countryCode: String? = null,
     @SerializedName("country_name") val countryName: String? = null,
-    val city: String? = null,
-)
-
-data class IpGeoCurrency(
-    val code: String? = null,
-    val name: String? = null,
-    val symbol: String? = null,
+    val currency: String? = null,
+    @SerializedName("currency_name") val currencyName: String? = null,
+    // ipapi.co returns an "error": true + "reason" field on failed lookups
+    // (e.g. rate limit hit) instead of an HTTP error code — check this
+    // before trusting the fields above.
+    val error: Boolean? = null,
+    val reason: String? = null,
 )

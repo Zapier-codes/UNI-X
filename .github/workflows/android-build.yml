@@ -15,8 +15,8 @@ jobs:
     # All secrets are injected here as env vars, read by app/build.gradle.kts
     # via System.getenv(...) at build time. Nothing is ever committed.
     #
-    # Required in repo Settings -> Secrets and variables -> Actions:
-    #   IPGEOLOCATION_API_KEY   free key from https://ipgeolocation.io
+    # Currency/geo lookup uses ipapi.co, which needs no API key — nothing
+    # to configure for that part.
     #
     # Optional, only needed for a properly SIGNED release APK (otherwise
     # release builds are unsigned, which is fine for CI verification but
@@ -26,7 +26,6 @@ jobs:
     #   KEY_ALIAS
     #   KEY_PASSWORD
     env:
-      IPGEOLOCATION_API_KEY: ${{ secrets.IPGEOLOCATION_API_KEY }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}

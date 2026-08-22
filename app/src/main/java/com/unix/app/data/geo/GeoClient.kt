@@ -6,7 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object GeoClient {
-    const val BASE_URL = "https://api.ipgeolocation.io/"
+    const val BASE_URL = "https://ipapi.co/"
 
     fun create(debug: Boolean = false): GeoApi {
         val logging = HttpLoggingInterceptor().apply {

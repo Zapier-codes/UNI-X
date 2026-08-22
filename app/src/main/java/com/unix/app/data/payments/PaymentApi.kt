@@ -23,7 +23,7 @@ import retrofit2.http.Path
  * different field names, only this file + [PaymentModels] need to change.
  *
  * Geolocation/currency detection does NOT go through this backend — see
- * data/geo/GeoApi.kt (ipgeolocation.io) for that.
+ * data/geo/GeoApi.kt (ipapi.co) for that.
  */
 interface PaymentApi {
 

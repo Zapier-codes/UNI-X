@@ -49,7 +49,7 @@ setup — connect a real Moodle site in Settings to go live.
 - Payments: the app talks only to the university's own hosted backend
   (`b-pay-backend.onrender.com`), which in turn talks to Korapay. The
   Korapay secret key never touches this app.
-- Geolocation/currency: `ipgeolocation.io` (industry-standard IP geolocation),
+- Geolocation/currency: `ipapi.co` (free, no API key required, HTTPS),
   independent of the payment backend
 - Session persistence: DataStore (`data/session/SessionStore.kt`) — sign-in
   state, institution URL, dark-mode preference, and role survive an app restart
@@ -80,7 +80,7 @@ Strictly checkout — this app never collects card numbers, OTPs, or bank
 details.
 
 1. `TuitionScreen` shows invoices per session/semester, priced in the
-   student's local currency (geolocation via ipgeolocation.io, falling back
+   student's local currency (geolocation via ipapi.co, falling back
    to device locale instantly while the network call is in flight)
 2. `CheckoutScreen` calls your backend's `POST /api/pay` → gets back a
    `checkout_url`
@@ -166,11 +166,12 @@ Go to **repo Settings → Secrets and variables → Actions → New repository s
 
 | Secret | Required? | What it's for |
 |---|---|---|
-| `IPGEOLOCATION_API_KEY` | Yes, for real currency detection | Free key from https://ipgeolocation.io. Without it, the app still works — it just falls back to a device-locale currency guess instead of a real IP lookup. |
 | `KEYSTORE_BASE64` | Only for a distributable release | `base64 -w0 your-release.keystore` output. Without it, `assembleRelease` still succeeds but produces an **unsigned** APK — fine to verify the build, not fine to publish. |
 | `KEYSTORE_PASSWORD` | With `KEYSTORE_BASE64` | Your keystore's store password |
 | `KEY_ALIAS` | With `KEYSTORE_BASE64` | The key alias inside the keystore |
 | `KEY_PASSWORD` | With `KEYSTORE_BASE64` | That key's password |
+
+Currency detection needs no secret at all — see below.
 
 If you don't have a release keystore yet:
 ```bash
@@ -213,23 +214,19 @@ If your actual route handlers use different field names, only
 `data/payments/PaymentApi.kt` and `PaymentModels.kt` need to change — send
 me a sample request/response and I'll match it exactly.
 
-## Currency detection — ipgeolocation.io
+## Currency detection — ipapi.co
 
 Every screen shows tuition first in an instant, offline guess from the
 device locale (`CurrencyLocator.fromDeviceLocale`), then refines it with a
-real IP lookup via [ipgeolocation.io](https://ipgeolocation.io) (free tier,
-1,000 lookups/day, no card required) once that request returns. This is
-**display only** — the actual amount/currency sent to Korapay at checkout
-is whatever `CheckoutScreen` has resolved by the time the student taps Pay.
+real IP lookup via [ipapi.co](https://ipapi.co) once that request returns.
+This is **display only** — the actual amount/currency sent to Korapay at
+checkout is whatever `CheckoutScreen` has resolved by the time the student
+taps Pay.
 
-Setup:
-```
-cp local.properties.example local.properties
-# edit local.properties, set:
-IPGEOLOCATION_API_KEY=your_key_here
-```
-`local.properties` is gitignored — the key never gets committed. If no key
-is configured, the app silently falls back to the device-locale guess.
+No signup, no API key, no credit card, HTTPS supported on the free tier
+(1,000 lookups/day) — genuinely nothing to configure. This intentionally
+replaces an earlier draft that used ipgeolocation.io, which despite being
+"free" still requires registering for a key; ipapi.co doesn't.
 
 Currently mapped currencies (matching Korapay's collection currencies):
 NGN, GHS, KES, ZAR, XOF, XAF — everything else falls back to USD. FX rates
@@ -271,7 +268,7 @@ invoices are scoped to a session + semester; see `TuitionScreen`.
 Closed this pass: session/sign-in persistence (DataStore), release signing
 via GitHub Secrets, role-gated Institution Console (client-side; pair with
 a server-side check once real Moodle roles are wired), local-currency
-checkout via ipgeolocation.io.
+checkout via ipapi.co (no API key needed).
 
 Still open:
 - **Push notifications.** Deliberately not wired yet. Firebase Cloud

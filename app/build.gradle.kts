@@ -11,11 +11,12 @@ plugins {
 // present, so a CI build is never accidentally using a stale local value.
 //
 // Secrets this build expects, if configured:
-//   IPGEOLOCATION_API_KEY  - currency/geo lookup (data/geo)
 //   KEYSTORE_BASE64        - base64-encoded release .jks/.keystore file
 //   KEYSTORE_PASSWORD
 //   KEY_ALIAS
 //   KEY_PASSWORD
+// (Currency/geo lookup via ipapi.co needs no key — see data/geo — so it's
+// no longer part of this secrets list.)
 // See .github/workflows/android-build.yml for exactly how these are wired.
 // ---------------------------------------------------------------------
 val localProperties = java.util.Properties().apply {
@@ -25,7 +26,6 @@ val localProperties = java.util.Properties().apply {
 fun secret(name: String): String =
     System.getenv(name) ?: (localProperties[name] as? String) ?: ""
 
-val ipGeolocationApiKey = secret("IPGEOLOCATION_API_KEY")
 
 // The workflow decodes KEYSTORE_BASE64 to this path before Gradle runs.
 // Locally, drop a keystore at this path (or point KEYSTORE_PATH env at it)
@@ -51,7 +51,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "IPGEOLOCATION_API_KEY", "\"$ipGeolocationApiKey\"")
 
         // Lightweight, single-ABI build: arm64-v8a only (covers the large
         // majority of active Android devices). No universal/fat APK.

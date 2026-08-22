@@ -16,18 +16,16 @@ sealed class PaymentResult {
  * the browser-hosted Korapay checkout page for everything in between.
  *
  * Currency detection is a separate concern, deliberately not routed
- * through the payment backend — see [GeoApi] (ipgeolocation.io).
+ * through the payment backend — see [GeoApi] (ipapi.co).
  */
 class PaymentRepository(
     private val api: PaymentApi,
     private val geoApi: GeoApi,
-    private val geoApiKey: String,
 ) {
 
     suspend fun detectCurrency(fallback: SupportedCurrency): SupportedCurrency {
-        if (geoApiKey.isBlank()) return fallback // no key configured yet — stay on the locale-based guess
         return try {
-            val geo = geoApi.lookup(apiKey = geoApiKey)
+            val geo = geoApi.lookup()
             CurrencyLocator.fromGeoLookup(geo)
         } catch (e: Exception) {
             fallback

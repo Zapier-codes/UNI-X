@@ -136,15 +136,12 @@ private fun SignedInApp(
 
     // Payment stack: the app only ever talks to our own hosted backend
     // (b-pay-backend.onrender.com) for anything money-related, and to
-    // ipgeolocation.io purely for currency display. Both keys/URLs come
-    // from BuildConfig, which is populated at BUILD TIME from GitHub
-    // Secrets in CI (see .github/workflows/android-build.yml) or from
-    // local.properties for local development only.
+    // ipapi.co purely for currency display — genuinely no key required,
+    // so there's nothing to source from BuildConfig/secrets for this part.
     val paymentRepository = remember {
         PaymentRepository(
             api = PaymentClient.create(debug = false),
             geoApi = GeoClient.create(debug = false),
-            geoApiKey = BuildConfig.IPGEOLOCATION_API_KEY,
         )
     }
 
