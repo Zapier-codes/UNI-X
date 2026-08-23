@@ -19,6 +19,14 @@ plugins {
 // no longer part of this secrets list.)
 // See .github/workflows/android-build.yml for exactly how these are wired.
 // ---------------------------------------------------------------------
+// App identity — single source of truth for both the manifest/build config
+// and the release APK's file name (see androidComponents block below).
+// "Nothing more, nothing less" means the shipped file is literally
+// UNI-X-<versionName>.apk — no arch suffix, no -unsigned, no -release.
+val appDisplayName = "UNI-X"
+val appVersionCode = 1
+val appVersionName = "0.1.0"
+
 val localProperties = java.util.Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -46,8 +54,8 @@ android {
         applicationId = "com.unix.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -118,6 +126,18 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+// Renames the release output APK to exactly "<appDisplayName>-<versionName>.apk"
+// — e.g. UNI-X-0.1.0.apk — with no arch suffix, no -unsigned/-release
+// qualifier, nothing else. Left untouched for debug builds since only the
+// release APK is a distributable artifact.
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("$appDisplayName-$appVersionName.apk")
         }
     }
 }

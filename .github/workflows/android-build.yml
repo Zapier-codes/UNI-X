@@ -7,9 +7,14 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# Needed so the release step can create/update a GitHub Release and attach
+# the APK using the default GITHUB_TOKEN — no extra secret required.
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Assemble arm64-v8a release APK
+    name: Build & publish release APK
     runs-on: ubuntu-latest
 
     # All secrets are injected here as env vars, read by app/build.gradle.kts
@@ -19,8 +24,8 @@ jobs:
     # to configure for that part.
     #
     # Optional, only needed for a properly SIGNED release APK (otherwise
-    # release builds are unsigned, which is fine for CI verification but
-    # not for distribution):
+    # release builds are unsigned, which is fine to publish for internal
+    # testing but not for a real store listing):
     #   KEYSTORE_BASE64         `base64 -w0 your.keystore` output
     #   KEYSTORE_PASSWORD
     #   KEY_ALIAS
@@ -51,7 +56,7 @@ jobs:
           gradle-version: "8.7"
 
       # Only writes the keystore file if the secret is actually configured,
-      # so forks / repos without signing secrets still build (unsigned).
+      # so the repo still builds (unsigned) before signing secrets exist.
       # NOTE: `secrets` cannot be referenced directly in an `if:` — GitHub
       # only evaluates env/vars/github/etc. contexts there. That's why
       # KEYSTORE_BASE64 is promoted to a job-level env var above; this step
@@ -60,10 +65,13 @@ jobs:
         if: ${{ env.KEYSTORE_BASE64 != '' }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
 
-      - name: Lint (non-blocking)
+      - name: Lint (non-blocking, not published anywhere)
         run: gradle lintDebug --stacktrace
         continue-on-error: true
 
+      # Release only — no debug build, no debug APK. The output file name
+      # is controlled entirely by app/build.gradle.kts's androidComponents
+      # block: UNI-X-<versionName>.apk, nothing more, nothing less.
       - name: Build release APK (arm64-v8a only)
         run: gradle assembleRelease --stacktrace
 
@@ -71,25 +79,36 @@ jobs:
         id: locate
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No release APK found" >&2
+            exit 1
+          fi
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
           echo "Found: $APK_PATH"
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: unix-arm64-release-apk
-          path: ${{ steps.locate.outputs.apk_path }}
-          if-no-files-found: error
+      - name: Read app name & version
+        id: version
+        run: |
+          NAME=$(grep -m1 'val appDisplayName' app/build.gradle.kts | sed -E 's/.*"(.*)".*/\1/')
+          VERSION=$(grep -m1 'val appVersionName' app/build.gradle.kts | sed -E 's/.*"(.*)".*/\1/')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build debug APK (for quick sideload testing)
-        run: gradle assembleDebug --stacktrace
-
-      - name: Upload debug APK artifact
-        uses: actions/upload-artifact@v4
+      # No actions/upload-artifact anywhere in this workflow — the APK goes
+      # straight to a GitHub Release, not a temporary CI artifact. Pushing
+      # the same version again updates that release's asset in place
+      # rather than creating a duplicate.
+      - name: Publish GitHub Release with APK
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: softprops/action-gh-release@v2
         with:
-          name: unix-arm64-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "${{ steps.version.outputs.name }} ${{ steps.version.outputs.version }}"
+          files: ${{ steps.locate.outputs.apk_path }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clean up decoded keystore
         if: always()

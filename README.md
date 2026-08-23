@@ -143,16 +143,27 @@ The debug APK lands in `app/build/outputs/apk/debug/`.
 ## GitHub Actions
 
 `.github/workflows/android-build.yml` builds on every push to `main`, PR,
-or manual trigger:
+or manual trigger. **Release only — no debug build, no CI artifacts.**
 1. JDK 17 + Gradle 8.7 (via `gradle/actions/setup-gradle`, no wrapper jar
    needed in the repo)
-2. Decodes `KEYSTORE_BASE64` (if set) to a keystore file, so...
+2. Decodes `KEYSTORE_BASE64` (if set) to a keystore file
 3. `assembleRelease` — minified, `arm64-v8a`-only, and **signed** if
    signing secrets are present (unsigned otherwise)
-4. `assembleDebug` — sideloadable APK for quick testing
-5. Both uploaded as workflow artifacts (`unix-arm64-release-apk`,
-   `unix-arm64-debug-apk`)
+4. The output file is named exactly `UNI-X-<versionName>.apk` (e.g.
+   `UNI-X-0.1.0.apk`) — controlled by the `androidComponents` block in
+   `app/build.gradle.kts`, not by anything in the workflow
+5. On push (not on PRs), the APK is published straight to a **GitHub
+   Release** tagged `v<versionName>` via `softprops/action-gh-release` —
+   there is no `actions/upload-artifact` step anywhere in this workflow.
+   Pushing again under the same version updates that release's asset in
+   place rather than creating a duplicate; bump `appVersionName` in
+   `app/build.gradle.kts` to cut a new release instead.
 6. The decoded keystore is deleted from the runner at the end either way
+
+Grab the APK from the repo's **Releases** page, or:
+```bash
+gh release download v0.1.0 --pattern '*.apk'
+```
 
 See **GitHub Secrets**, below, for exactly which secrets to add.
 
