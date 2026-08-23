@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -27,7 +29,11 @@ val appDisplayName = "UNI-X"
 val appVersionCode = 1
 val appVersionName = "0.1.0"
 
-val localProperties = java.util.Properties().apply {
+// NOTE: "java" at script scope resolves to the Java plugin's `java { }`
+// extension accessor, not the java.* package — writing java.util.Properties()
+// here fails to compile ("Unresolved reference: util") because of that
+// shadowing. Importing Properties directly sidesteps the ambiguity.
+val localProperties = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
