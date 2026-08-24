@@ -22,7 +22,9 @@ plugins {
 // See .github/workflows/android-build.yml for exactly how these are wired.
 // ---------------------------------------------------------------------
 // App identity — single source of truth for both the manifest/build config
-// and the release APK's file name (see androidComponents block below).
+// and the release APK's file name. The workflow's "Read app version" step
+// greps appDisplayName/appVersionName straight from this file, so the
+// shipped APK/Release always match whatever's set here.
 // "Nothing more, nothing less" means the shipped file is literally
 // UNI-X-<versionName>.apk — no arch suffix, no -unsigned, no -release.
 val appDisplayName = "UNI-X"
@@ -136,17 +138,16 @@ android {
     }
 }
 
-// Renames the release output APK to exactly "<appDisplayName>-<versionName>.apk"
-// — e.g. UNI-X-0.1.0.apk — with no arch suffix, no -unsigned/-release
-// qualifier, nothing else. Left untouched for debug builds since only the
-// release APK is a distributable artifact.
-androidComponents {
-    onVariants(selector().withBuildType("release")) { variant ->
-        variant.outputs.forEach { output ->
-            output.outputFileName.set("$appDisplayName-$appVersionName.apk")
-        }
-    }
-}
+// NOTE on APK naming: AGP's new Variant API deliberately does NOT support
+// setting outputFileName directly (confirmed against AGP engineer guidance —
+// the old applicationVariants.outputFileName mechanism was removed in AGP
+// 4.1+ and never replaced with an equivalent for the new API; the supported
+// pattern is registering a task that COPIES the built APK to a renamed
+// file). Rather than depend on fragile, version-specific AGP internals for
+// a cosmetic rename, the actual "UNI-X-<version>.apk" naming happens as a
+// plain `mv` in the CI workflow after the build completes — see the
+// "Rename APK" step in .github/workflows/android-build.yml. Simpler, and
+// has zero AGP-version risk.
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")

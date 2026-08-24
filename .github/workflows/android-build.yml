@@ -69,23 +69,15 @@ jobs:
         run: gradle lintDebug --stacktrace
         continue-on-error: true
 
-      # Release only — no debug build, no debug APK. The output file name
-      # is controlled entirely by app/build.gradle.kts's androidComponents
-      # block: UNI-X-<versionName>.apk, nothing more, nothing less.
+      # Release only — no debug build, no debug APK. AGP's new Variant API
+      # doesn't support renaming outputFileName directly (that mechanism
+      # was removed for the new API and never replaced), so this produces
+      # whatever AGP's default name is — cleaned up in the next two steps.
       - name: Build release APK (arm64-v8a only)
         run: gradle assembleRelease --stacktrace
 
-      - name: Locate APK
-        id: locate
-        run: |
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "No release APK found" >&2
-            exit 1
-          fi
-          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "Found: $APK_PATH"
-
+      # App name + version live in app/build.gradle.kts as the single
+      # source of truth — grepped here rather than duplicated.
       - name: Read app name & version
         id: version
         run: |
@@ -94,6 +86,23 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Renames whatever AGP actually produced (e.g. app-release-unsigned.apk)
+      # to exactly "<name>-<version>.apk" — nothing more, nothing less. Doing
+      # this as a plain `mv` here, instead of fighting AGP's Variant API
+      # internals in build.gradle.kts, has zero AGP-version risk.
+      - name: Rename APK
+        id: locate
+        run: |
+          SRC=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$SRC" ]; then
+            echo "No release APK found" >&2
+            exit 1
+          fi
+          DEST="app/build/outputs/apk/release/${{ steps.version.outputs.name }}-${{ steps.version.outputs.version }}.apk"
+          mv "$SRC" "$DEST"
+          echo "apk_path=$DEST" >> "$GITHUB_OUTPUT"
+          echo "Renamed $SRC -> $DEST"
 
       # No actions/upload-artifact anywhere in this workflow — the APK goes
       # straight to a GitHub Release, not a temporary CI artifact. Pushing
