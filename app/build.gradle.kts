@@ -70,19 +70,20 @@ android {
 
         // Lightweight, single-ABI build: arm64-v8a only (covers the large
         // majority of active Android devices). No universal/fat APK.
+        //
+        // NOTE: this alone is sufficient — it restricts which native
+        // libraries get packaged into the one APK produced. A splits.abi
+        // block was previously also present as a "belt and suspenders"
+        // measure, but AGP rejects that combination outright:
+        //   Conflicting configuration: 'arm64-v8a' in ndk abiFilters
+        //   cannot be present when splits abi filters are set: arm64-v8a
+        // splits.abi is for generating multiple per-ABI APK variants
+        // (with a universal-APK toggle) — a different mechanism aimed at
+        // a different goal (one APK per ABI) than what's wanted here (one
+        // APK, containing only arm64-v8a native code). ndk.abiFilters is
+        // the right tool for that on its own.
         ndk {
             abiFilters += listOf("arm64-v8a")
-        }
-    }
-
-    // Belt-and-suspenders: also restrict via splits so accidental
-    // multi-ABI native deps never bloat the artifact.
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = false
         }
     }
 
